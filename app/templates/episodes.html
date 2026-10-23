@@ -23,7 +23,7 @@ main{max-width:1350px;margin:auto;padding:30px 20px 60px}a{color:#c7c0ff;text-de
 <input type="hidden" id="episodeId">
 <div class="scene-grid">
 <div class="field"><label for="episodeNumber">Episode number *</label><input id="episodeNumber" type="number" min="1" max="9999" step="1" required placeholder="1"></div>
-<div class="field"><label for="status">Production status</label><select id="status"><option>Planning</option><option>Script Ready</option><option>Storyboarding</option><option>Generating</option><option>Editing</option><option>Complete</option></select></div>
+<div class="field"><label for="status">Production status</label><select id="status" name="status"><option value="Planning" selected>Planning — not started / being planned</option><option value="Script Ready">Script Ready — script is approved</option><option value="Storyboarding">Storyboarding — planning shots and scenes</option><option value="Generating">Generating — creating AI clips</option><option value="Editing">Editing — assembling clips and audio</option><option value="Complete">Complete — episode is finished</option></select></div>
 </div>
 <div class="field"><label for="title">Episode title *</label><input id="title" maxlength="200" required placeholder="Episode title"></div>
 <div class="field"><label for="summary">Summary / production notes</label><textarea id="summary" maxlength="20000" placeholder="Approved episode synopsis, key beats, and production notes…"></textarea></div>
