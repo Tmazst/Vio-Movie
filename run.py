@@ -4,6 +4,7 @@ from flask import Flask, abort, jsonify, render_template, request, send_file
 
 from app.character_store import delete_character, get_character, list_characters, save_character
 from app.episode_store import delete_episode, get_episode, list_episodes, save_episode
+from app.shot_store import generate_shots, list_shots, save_shots
 from app.scanner import IMAGE_EXTENSIONS, scan_project
 
 app = Flask(__name__, template_folder="app/templates")
@@ -48,6 +49,11 @@ def characters_page():
 @app.get("/episodes")
 def episodes_page():
     return render_template("episodes.html")
+
+
+@app.get("/shots")
+def shots_page():
+    return render_template("shots.html")
 
 
 def validate_script_path(relative_path: str) -> None:
@@ -102,6 +108,47 @@ def episodes_delete(episode_id: int):
     if not delete_episode(episode_id):
         return jsonify({"error": "Episode not found."}), 404
     return jsonify({"deleted": True})
+
+
+@app.get("/api/episodes/<int:episode_id>/shots")
+def episode_shots_list(episode_id: int):
+    if get_episode(episode_id) is None:
+        return jsonify({"error": "Episode not found."}), 404
+    return jsonify({"shots": list_shots(episode_id)})
+
+
+@app.post("/api/episodes/<int:episode_id>/shots/generate")
+def episode_shots_generate(episode_id: int):
+    data = request.get_json(silent=True) or {}
+    try:
+        clip_seconds = int(data.get("clip_seconds", 5))
+        shots = generate_shots(episode_id, clip_seconds)
+        return jsonify({"shots": shots})
+    except LookupError as error:
+        return jsonify({"error": str(error)}), 404
+    except (OSError, TypeError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.put("/api/episodes/<int:episode_id>/shots")
+def episode_shots_update(episode_id: int):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get("shots"), list):
+        return jsonify({"error": "Send the shot list as a JSON array named shots."}), 400
+    try:
+        for shot in data["shots"]:
+            if not isinstance(shot, dict):
+                raise ValueError("Each shot must contain shot details.")
+            images = shot.get("reference_images", [])
+            if not isinstance(images, list):
+                raise ValueError("Shot reference images must be a list.")
+            validate_reference_images(images)
+        shots = save_shots(episode_id, data["shots"])
+        return jsonify({"shots": shots})
+    except LookupError as error:
+        return jsonify({"error": str(error)}), 404
+    except (OSError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @app.get("/api/project/scan")
