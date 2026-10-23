@@ -3,7 +3,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from app.character_store import DATABASE_PATH
+from app.character_store import DATABASE_PATH, list_characters
 
 EPISODE_STATUSES = [
     "Planning", "Script Ready", "Storyboarding", "Generating", "Editing", "Complete"
@@ -133,10 +133,7 @@ def _clean_payload(data: dict[str, Any]) -> dict[str, Any]:
     if len({scene["scene_number"] for scene in cleaned_scenes}) != len(cleaned_scenes):
         raise ValueError("Scene numbers must be unique within an episode.")
 
-    with connect() as connection:
-        known_ids = {
-            row["id"] for row in connection.execute("SELECT id FROM characters").fetchall()
-        }
+    known_ids = {character["id"] for character in list_characters()}
     all_ids = set(character_ids)
     for scene in cleaned_scenes:
         all_ids.update(scene["character_ids"])
