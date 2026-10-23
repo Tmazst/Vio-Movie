@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10131b">
+<title>Episode Manager | Vio-Movie</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e29;--line:#2b3445;--text:#edf1f8;--muted:#9ba8ba;--accent:#8b7cff;--good:#65d6a4;--bad:#ff8989}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top left,#242044 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1350px;margin:auto;padding:30px 20px 60px}a{color:#c7c0ff;text-decoration:none}a:hover{text-decoration:underline}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accent);font-size:22px;font-weight:800}h1{font-size:clamp(25px,4vw,34px);letter-spacing:-.04em;margin:0}.muted{color:var(--muted)}.toplinks{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+.hero,.panel,.episode,.scene{border:1px solid var(--line);border-radius:16px;background:rgba(25,30,41,.94)}.hero{padding:22px;background:linear-gradient(135deg,rgba(139,124,255,.13),rgba(25,30,41,.94) 60%)}.hero h2{margin:0 0 5px}.hero p{margin:0;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(310px,.85fr) minmax(0,1.4fr);gap:16px;margin-top:16px;align-items:start}.panel{padding:18px;min-width:0}.panel h2{margin:0 0 14px;font-size:20px}.field{margin-bottom:13px}.field label{display:block;font-weight:650;margin-bottom:5px}.field small{display:block;color:var(--muted);margin-top:4px}input,textarea,select{width:100%;background:#111621;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 11px;font:inherit}textarea{min-height:75px;resize:vertical}button{background:var(--accent);color:white;border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer}button.secondary{background:#252c3b;border:1px solid var(--line)}button.danger{background:#6b2936}button:disabled{opacity:.6;cursor:wait}.buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+#status{margin:12px 0;color:var(--muted)}#status.good{color:var(--good)}#status.error{color:var(--bad)}.list{display:grid;gap:10px}.episode{padding:14px}.episode-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.episode h3{margin:0;font-size:17px;overflow-wrap:anywhere}.episode p{margin:5px 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:3px 8px;color:#c7c0ff;font-size:11px;white-space:nowrap}.episode-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.episode-actions button{font-size:12px;padding:6px 9px}.empty{padding:22px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center}.help{font-size:12px;color:var(--muted);margin-top:12px}.checks{display:flex;gap:8px;flex-wrap:wrap;border:1px solid var(--line);padding:9px;border-radius:9px;min-height:42px}.checks label{display:flex;align-items:center;gap:6px;font-size:13px;margin:0;padding:5px 8px;border-radius:7px;background:#222839}.checks input{width:auto;margin:0}.scene-list{display:grid;gap:10px;margin:10px 0}.scene{padding:13px;background:#141a25}.scene-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.scene-top h3{margin:0;font-size:15px}.scene-top button{font-size:12px;padding:6px 9px}.scene-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}.scene .field{margin-bottom:10px}.scene textarea{min-height:65px}.full{grid-column:1/-1}.counter{font-size:12px;color:var(--muted);font-weight:400}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}@media(max-width:600px){main{padding:20px 12px}.top{align-items:flex-start}.toplinks{flex-direction:column;gap:5px}.panel{padding:13px}.scene-grid{grid-template-columns:1fr}.full{grid-column:auto}.episode-head{display:block}.pill{margin-top:6px}}
+</style>
+</head>
+<body><main>
+<header class="top"><div class="logo" aria-hidden="true">V</div><div><h1>Episode Manager</h1><div class="muted">Inkaka The Guru · Episodes, scenes and production progress</div></div><nav class="toplinks"><a href="/characters">Character Bible</a><a href="/library">Production Library</a><a href="/">← Dashboard</a></nav></header>
+<section class="hero"><h2>Build episodes from your approved material</h2><p>Create an episode, link an existing script, assign Character Bible profiles, and organize scenes with locations, action, dialogue, props, lighting and estimated duration. Episode records live in Vio-Movie's local database; existing production files are only referenced, never moved or edited.</p></section>
+<div class="layout">
+<section class="panel">
+<h2 id="formTitle">Create an episode</h2>
+<form id="episodeForm">
+<input type="hidden" id="episodeId">
+<div class="scene-grid">
+<div class="field"><label for="episodeNumber">Episode number *</label><input id="episodeNumber" type="number" min="1" max="9999" step="1" required placeholder="1"></div>
+<div class="field"><label for="status">Production status</label><select id="status"><option>Planning</option><option>Script Ready</option><option>Storyboarding</option><option>Generating</option><option>Editing</option><option>Complete</option></select></div>
+</div>
+<div class="field"><label for="title">Episode title *</label><input id="title" maxlength="200" required placeholder="Episode title"></div>
+<div class="field"><label for="summary">Summary / production notes</label><textarea id="summary" maxlength="20000" placeholder="Approved episode synopsis, key beats, and production notes…"></textarea></div>
+<div class="field"><label for="scriptPath">Existing script file</label><select id="scriptPath"><option value="">No script linked</option></select><small>Choose a file from your existing production folder. Vio-Movie stores its path; it does not change the file.</small></div>
+<div class="field"><label>Episode cast</label><div id="episodeCharacters" class="checks"><span class="muted">Loading Character Bible…</span></div><small>Choose the characters who appear somewhere in this episode.</small></div>
+<div class="scene-top"><h3>Scenes <span class="counter" id="sceneCount">(0)</span></h3><button id="addScene" class="secondary" type="button">+ Add scene</button></div>
+<div id="sceneList" class="scene-list"></div>
+<div class="buttons"><button id="save" type="submit">Save episode</button><button id="reset" class="secondary" type="button">Clear form</button><button id="delete" class="danger" type="button" hidden>Delete episode</button></div>
+</form><p id="status" role="status" aria-live="polite">Loading episodes and reference data…</p>
+</section>
+<section class="panel"><h2>Production episodes <span class="muted" id="episodeCount"></span></h2><div id="episodes" class="list"><div class="empty">Loading episodes…</div></div><p class="help">Each episode number must be unique. Deleting an episode removes only its Vio-Movie record, not scripts, images, clips or other production files.</p></section>
+</div></main>
+<script>
+const el=id=>document.getElementById(id);let episodes=[];let characters=[];let scripts=[];let sceneDrafts=[];
+const episodeStatuses=["Planning","Script Ready","Storyboarding","Generating","Editing","Complete"];
+const sceneStatuses=["Planned","Ready","Generated","Edited"];
+function node(tag,cls,text){const item=document.createElement(tag);if(cls)item.className=cls;if(text!==undefined)item.textContent=text;return item}
+function say(text,kind=""){el("status").className=kind;el("status").textContent=text}
+function selectedEpisodeCharacters(){return [...el("episodeCharacters").querySelectorAll("input:checked")].map(input=>Number(input.value))}
+function renderCharacters(selected=[]){
+ const wrap=el("episodeCharacters");wrap.replaceChildren();
+ if(!characters.length){wrap.append(node("span","muted","No characters yet. Add them in the Character Bible first."));return}
+ for(const c of characters){const label=node("label"),check=node("input");check.type="checkbox";check.value=c.id;check.checked=selected.includes(c.id);label.append(check,node("span","",c.name));wrap.append(label)}
+}
+function renderScriptOptions(selected=""){
+ const select=el("scriptPath");select.replaceChildren();select.append(new Option("No script linked",""));
+ for(const script of scripts)select.append(new Option(script.relative_path,script.relative_path));
+ if(selected&&!scripts.some(x=>x.relative_path===selected))select.append(new Option(selected+" (saved path)",selected));
+ select.value=selected||"";
+}
+function addScene(scene={}){
+ const draft={
+  scene_number:scene.scene_number||sceneDrafts.length+1,title:scene.title||"",location:scene.location||"",time_of_day:scene.time_of_day||"",
+  character_ids:Array.isArray(scene.character_ids)?scene.character_ids:[],action:scene.action||"",dialogue:scene.dialogue||"",
+  props:scene.props||"",lighting:scene.lighting||"",duration_seconds:scene.duration_seconds||0,status:scene.status||"Planned"
+ };
+ sceneDrafts.push(draft);renderScenes();
+}
+function renderScenes(){
+ const wrap=el("sceneList");wrap.replaceChildren();el("sceneCount").textContent="("+sceneDrafts.length+")";
+ sceneDrafts.forEach((s,index)=>{
+  const card=node("article","scene"),top=node("div","scene-top"),heading=node("h3","", "Scene "+s.scene_number+(s.title?" · "+s.title:"")),remove=node("button","secondary","Remove scene");remove.type="button";remove.addEventListener("click",()=>{sceneDrafts.splice(index,1);sceneDrafts.forEach((item,i)=>item.scene_number=i+1);renderScenes()});top.append(heading,remove);card.append(top);
+  const grid=node("div","scene-grid");
+  const field=(labelText,key,kind="input",options=null,full=false)=>{
+   const holder=node("div","field"+(full?" full":"")),label=node("label","",labelText),control=kind==="textarea"?node("textarea"):kind==="select"?node("select"):node("input");
+   if(kind==="input"){control.type="text"}if(key==="duration_seconds"){control.type="number";control.min="0";control.max="86400";control.step="1"}
+   if(kind==="select"){for(const value of options)control.append(new Option(value,value))}
+   control.value=s[key]??"";control.addEventListener("input",()=>{s[key]=key==="duration_seconds"?(Number(control.value)||0):control.value;heading.textContent="Scene "+s.scene_number+(s.title?" · "+s.title:"")});
+   if(key==="title")control.addEventListener("input",()=>{heading.textContent="Scene "+s.scene_number+(s.title?" · "+s.title:"")});
+   label.append(control);holder.append(label,control);return holder
+  };
+  // Each control is labelled by a separate visible label; avoid duplicate input insertion.
+  const addField=(labelText,key,kind="input",options=null,full=false)=>{
+   const holder=node("div","field"+(full?" full":"")),label=node("label","",labelText);let control;
+   if(kind==="textarea")control=node("textarea");else if(kind==="select"){control=node("select");for(const value of options)control.append(new Option(value,value))}else{control=node("input");control.type=key==="duration_seconds"?"number":"text";if(key==="duration_seconds"){control.min="0";control.max="86400";control.step="1"}}
+   control.value=s[key]??"";control.addEventListener("input",()=>{s[key]=key==="duration_seconds"?(Number(control.value)||0):control.value;if(key==="title")heading.textContent="Scene "+s.scene_number+(s.title?" · "+s.title:"")});
+   label.append(control);holder.append(label);grid.append(holder);return control
+  };
+  addField("Scene title","title");addField("Location","location");addField("Time of day","time_of_day");addField("Estimated duration (seconds)","duration_seconds");addField("Scene status","status","select",sceneStatuses);
+  const castHolder=node("div","field full"),castLabel=node("label","","Characters in this scene"),cast=node("div","checks");
+  if(!characters.length)cast.append(node("span","muted","Create profiles in Character Bible first."));
+  for(const c of characters){const label=node("label"),check=node("input");check.type="checkbox";check.value=c.id;check.checked=s.character_ids.includes(c.id);check.addEventListener("change",()=>{s.character_ids= [...cast.querySelectorAll("input:checked")].map(input=>Number(input.value))});label.append(check,node("span","",c.name));cast.append(label)}
+  castLabel.append(cast);castHolder.append(castLabel,node("small","muted","Scene cast can be a subset of the episode cast."));grid.append(castHolder);
+  addField("Action / visual direction","action","textarea",null,true);addField("Dialogue","dialogue","textarea",null,true);addField("Props / continuity","props","textarea",null,true);addField("Lighting / atmosphere","lighting","textarea",null,true);
+  card.append(grid);wrap.append(card);
+ });
+}
+function resetForm(){
+ el("episodeForm").reset();el("episodeId").value="";el("formTitle").textContent="Create an episode";el("save").textContent="Save episode";el("delete").hidden=true;
+ sceneDrafts=[];renderScenes();renderCharacters();renderScriptOptions(); 
+}
+function editEpisode(ep){
+ el("episodeId").value=ep.id;el("episodeNumber").value=ep.episode_number;el("title").value=ep.title||"";el("summary").value=ep.summary||"";el("status").value=ep.status||"Planning";
+ renderScriptOptions(ep.script_path||"");renderCharacters(ep.character_ids||[]);sceneDrafts=Array.isArray(ep.scenes)?ep.scenes.map(s=>({...s})):[];renderScenes();
+ el("formTitle").textContent="Edit Episode "+ep.episode_number;el("save").textContent="Update episode";el("delete").hidden=false;say("Editing Episode "+ep.episode_number+". Save changes when finished.")
+}
+function renderEpisodes(){
+ const wrap=el("episodes");wrap.replaceChildren();el("episodeCount").textContent="("+episodes.length+")";
+ if(!episodes.length){wrap.append(node("div","empty","No episodes yet. Create your first episode using the form."));return}
+ for(const ep of episodes){
+  const card=node("article","episode"),head=node("div","episode-head"),left=node("div");
+  left.append(node("h3","","EP "+String(ep.episode_number).padStart(2,"0")+" · "+ep.title));
+  const castNames=(ep.character_ids||[]).map(id=>characters.find(c=>c.id===id)?.name).filter(Boolean);
+  left.append(node("p","",(ep.scenes||[]).length+" scene(s) · "+castNames.length+" cast member(s)"+(ep.script_path?" · Script linked":" · No script linked")));
+  head.append(left,node("span","pill",ep.status));card.append(head);
+  if(ep.summary)card.append(node("p","",ep.summary.length>220?ep.summary.slice(0,220)+"…":ep.summary));
+  const actions=node("div","episode-actions"),edit=node("button","secondary","Edit episode");edit.type="button";edit.addEventListener("click",()=>editEpisode(ep));actions.append(edit);
+  const details=node("button","secondary","Scene overview");details.type="button";details.addEventListener("click",()=>{
+   const existing=card.querySelector(".scene-overview");if(existing){existing.remove();return}
+   const overview=node("div","scene-overview");
+   if(!(ep.scenes||[]).length)overview.append(node("p","","No scenes added yet."));
+   for(const scene of ep.scenes||[]){const names=(scene.character_ids||[]).map(id=>characters.find(c=>c.id===id)?.name).filter(Boolean);overview.append(node("p","","Scene "+scene.scene_number+(scene.title?": "+scene.title:"")+" — "+(scene.location||"Location not set")+" · "+scene.status+(names.length?" · "+names.join(", "):"")))}
+   card.append(overview)
+  });actions.append(details);card.append(actions);wrap.append(card)
+ }
+}
+async function loadAll(){
+ const [epRes,charRes,assetRes,docRes]=await Promise.all([
+  fetch("/api/episodes"),fetch("/api/characters"),fetch("/api/project/assets?category=script"),fetch("/api/project/assets?category=document")
+ ]);
+ for(const response of [epRes,charRes,assetRes,docRes])if(!response.ok)throw new Error("Could not load episode data. Check that the server is running and the project folder is available.");
+ const [epData,charData,assetData,docData]=await Promise.all([epRes.json(),charRes.json(),assetRes.json(),docRes.json()]);
+ episodes=epData.episodes||[];characters=charData.characters||[];
+ const docs=[...(assetData.assets||[]),...(docData.assets||[])].filter(item=>[".pdf",".doc",".docx",".txt",".rtf",".md"].includes(item.extension));
+ scripts=[...new Map(docs.map(item=>[item.relative_path,item])).values()].sort((a,b)=>a.relative_path.localeCompare(b.relative_path));
+ renderEpisodes();renderCharacters();renderScriptOptions()
+}
+el("episodeForm").addEventListener("submit",async event=>{
+ event.preventDefault();el("save").disabled=true;
+ const id=el("episodeId").value;
+ const data={episode_number:Number(el("episodeNumber").value),title:el("title").value,summary:el("summary").value,status:el("status").value,script_path:el("scriptPath").value,character_ids:selectedEpisodeCharacters(),scenes:sceneDrafts.map((s,index)=>({...s,scene_number:index+1,character_ids:s.character_ids||[]}))};
+ try{const response=await fetch(id?"/api/episodes/"+id:"/api/episodes",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not save episode.");await loadAll();resetForm();say("Episode saved successfully.","good")}
+ catch(error){say(error.message,"error")}finally{el("save").disabled=false}
+});
+el("addScene").addEventListener("click",()=>{addScene();el("sceneList").lastElementChild?.scrollIntoView({behavior:"smooth",block:"nearest"})});
+el("reset").addEventListener("click",()=>{resetForm();say("Form cleared.")});
+el("delete").addEventListener("click",async()=>{
+ const id=el("episodeId").value;if(!id)return;const number=el("episodeNumber").value;
+ if(!confirm("Delete Episode "+number+" from Vio-Movie? This does not delete any source scripts or media."))return;
+ el("delete").disabled=true;
+ try{const response=await fetch("/api/episodes/"+id,{method:"DELETE"});const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not delete episode.");await loadAll();resetForm();say("Episode record deleted. Source files were not changed.","good")}
+ catch(error){say(error.message,"error")}finally{el("delete").disabled=false}
+});
+(async()=>{try{await loadAll();say("Episode Manager ready. Create an episode or edit an existing one.")}catch(error){say(error.message,"error")}})();
+</script></body></html>
