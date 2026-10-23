@@ -77,7 +77,7 @@ def _clean_payload(data: dict[str, Any]) -> dict[str, Any]:
     if len(summary) > 20000:
         raise ValueError("Episode summary must be 20,000 characters or fewer.")
 
-    status = str(data.get("status", "Planning")).strip()
+    status = str(data.get("status") or "Planning").strip()
     if status not in EPISODE_STATUSES:
         raise ValueError("Choose a valid episode production status.")
 
