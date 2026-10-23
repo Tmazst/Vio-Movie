@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10131b">
+<title>Character Bible | Vio-Movie</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e29;--line:#2b3445;--text:#edf1f8;--muted:#9ba8ba;--accent:#8b7cff;--good:#65d6a4;--bad:#ff8989}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top left,#242044 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1200px;margin:auto;padding:30px 20px 60px}a{color:#c7c0ff;text-decoration:none}a:hover{text-decoration:underline}.top{display:flex;align-items:center;gap:14px;margin-bottom:24px}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accent);font-size:22px;font-weight:800}h1{font-size:clamp(25px,4vw,34px);letter-spacing:-.04em;margin:0}.muted{color:var(--muted)}.toplinks{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+.hero,.panel,.profile{border:1px solid var(--line);border-radius:16px;background:rgba(25,30,41,.94)}.hero{padding:22px;background:linear-gradient(135deg,rgba(139,124,255,.13),rgba(25,30,41,.94) 60%)}.hero h2{margin:0 0 5px}.hero p{margin:0;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,1fr);gap:16px;margin-top:16px;align-items:start}.panel{padding:18px;min-width:0}.panel h2{margin:0 0 14px;font-size:20px}.field{margin-bottom:14px}.field label{display:block;font-weight:650;margin-bottom:6px}.field small{display:block;color:var(--muted);margin-top:4px}input,textarea,select{width:100%;background:#111621;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 11px;font:inherit}textarea{min-height:92px;resize:vertical}#description{min-height:112px}.buttons{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}button{background:var(--accent);color:white;border:0;border-radius:9px;padding:10px 15px;font:inherit;font-weight:700;cursor:pointer}button.secondary{background:#252c3b;border:1px solid var(--line)}button.danger{background:#6b2936}button:disabled{opacity:.6;cursor:wait}
+#status{margin:12px 0;color:var(--muted)}#status.good{color:var(--good)}#status.error{color:var(--bad)}.list{display:grid;gap:10px}.profile{padding:13px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:center}.thumb{width:72px;height:80px;object-fit:contain;background:#111621;border-radius:9px;border:1px solid var(--line)}.profile h3{margin:0 0 3px;font-size:16px;overflow-wrap:anywhere}.profile p{margin:0;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.profile-actions{display:flex;gap:8px;margin-top:8px}.profile-actions button{font-size:12px;padding:6px 9px}.empty{padding:25px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center}
+.image-picker{display:grid;grid-template-columns:1fr;gap:8px}.image-options{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px}.image-option{display:flex;gap:9px;align-items:center;padding:7px;border-radius:7px}.image-option:hover{background:#222839}.image-option input{width:auto}.image-option span{overflow-wrap:anywhere;font-size:13px}.chosen{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.chosen-item{background:#222839;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;overflow-wrap:anywhere}
+.note{font-size:12px;color:var(--muted);margin-top:12px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}}@media(max-width:520px){main{padding:20px 12px}.top{align-items:flex-start}.toplinks{flex-direction:column;gap:5px}.panel{padding:13px}}
+</style>
+</head>
+<body><main>
+<header class="top"><div class="logo" aria-hidden="true">V</div><div><h1>Character Bible</h1><div class="muted">Inkaka The Guru · Canon and continuity</div></div><nav class="toplinks"><a href="/library">Production Library</a><a href="/">← Dashboard</a></nav></header>
+<section class="hero"><h2>Keep each character consistent</h2><p>Record each character's locked appearance, episode outfit, voice reference and continuity notes. Attach existing reference images from your project folder. Profiles are saved locally in Vio-Movie's SQLite database; your source images remain untouched.</p></section>
+<div class="layout">
+<section class="panel">
+<h2 id="formTitle">Add a character</h2>
+<form id="characterForm">
+<input type="hidden" id="characterId">
+<div class="field"><label for="name">Character name *</label><input id="name" maxlength="100" placeholder="e.g. AMA" required><small>Use the official name from your series bible.</small></div>
+<div class="field"><label for="description">Locked appearance description</label><textarea id="description" maxlength="12000" placeholder="Paste the approved, stable physical description here. Avoid changing it between shots."></textarea></div>
+<div class="field"><label for="outfit">Current / episode outfit</label><textarea id="outfit" maxlength="12000" placeholder="Describe the outfit for this episode or continuity period."></textarea></div>
+<div class="field"><label for="voice">Voice ID / voice notes</label><input id="voice" maxlength="12000" placeholder="Voice provider, voice ID, settings, or notes"></div>
+<div class="field"><label for="continuity">Continuity notes</label><textarea id="continuity" maxlength="12000" placeholder="Age, props, scars, relationships, behavior, scene-specific continuity…"></textarea></div>
+<div class="field"><label>Reference images</label><div class="image-picker"><input id="imageSearch" type="search" placeholder="Filter image filenames…"><div id="imageOptions" class="image-options"><div class="empty">Loading reference images…</div></div></div><div id="chosen" class="chosen"></div><small>Choose one or more existing image files. A locked description is stored as written; Vio-Movie does not invent character canon.</small></div>
+<div class="buttons"><button id="save" type="submit">Save character</button><button id="reset" class="secondary" type="button">Clear form</button><button id="delete" class="danger" type="button" hidden>Delete profile</button></div>
+</form><p id="status" role="status" aria-live="polite">Loading characters and reference images…</p>
+</section>
+<section class="panel"><h2>Saved characters <span class="muted" id="profileCount"></span></h2><div id="profiles" class="list"><div class="empty">Loading profiles…</div></div><p class="note">Only profiles you save appear here. This page will not assume names or descriptions based on image filenames.</p></section>
+</div>
+</main>
+<script>
+const el=id=>document.getElementById(id);let profiles=[];let images=[];let selectedImages=new Set();
+function make(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n}
+function previewUrl(path){return "/api/project/preview?file="+encodeURIComponent(path)}
+function say(text,kind=""){el("status").className=kind;el("status").textContent=text}
+function updateChosen(){const wrap=el("chosen");wrap.replaceChildren();for(const path of selectedImages){const item=make("span","chosen-item",path);wrap.append(item)}}
+function renderImages(){
+ const q=el("imageSearch").value.trim().toLowerCase(),wrap=el("imageOptions");wrap.replaceChildren();
+ const visible=images.filter(x=>(x.name+" "+x.relative_path).toLowerCase().includes(q));
+ if(!visible.length){wrap.append(make("div","empty","No matching image references found."));return}
+ for(const img of visible){
+  const row=make("label","image-option"),check=make("input");check.type="checkbox";check.checked=selectedImages.has(img.relative_path);check.addEventListener("change",()=>{if(check.checked)selectedImages.add(img.relative_path);else selectedImages.delete(img.relative_path);updateChosen()});
+  const text=make("span","",img.relative_path);row.append(check,text);wrap.append(row)
+ }
+}
+function resetForm(){
+ el("characterForm").reset();el("characterId").value="";el("formTitle").textContent="Add a character";el("save").textContent="Save character";el("delete").hidden=true;selectedImages=new Set();renderImages();updateChosen()
+}
+function editProfile(p){
+ el("characterId").value=p.id;el("name").value=p.name||"";el("description").value=p.locked_description||"";el("outfit").value=p.outfit||"";el("voice").value=p.voice_id||"";el("continuity").value=p.continuity_notes||"";
+ selectedImages=new Set(p.reference_images||[]);el("formTitle").textContent="Edit "+p.name;el("save").textContent="Update character";el("delete").hidden=false;renderImages();updateChosen();say("Editing "+p.name+". Save changes when finished.")
+}
+function renderProfiles(){
+ const wrap=el("profiles");wrap.replaceChildren();el("profileCount").textContent="("+profiles.length+")";
+ if(!profiles.length){wrap.append(make("div","empty","No character profiles yet. Add your first character using the form."));return}
+ for(const p of profiles){
+  const card=make("article","profile");let img;
+  if(p.reference_images&&p.reference_images.length){img=make("img","thumb");img.src=previewUrl(p.reference_images[0]);img.alt=p.name+" reference";img.onerror=()=>{img.replaceWith(make("div","thumb","No preview"))}}
+  else{img=make("div","thumb","No image");img.style.display="grid";img.style.placeItems="center";img.style.fontSize="11px";img.style.color="var(--muted)"}
+  const body=make("div","");body.append(make("h3","",p.name),make("p","",p.locked_description||"No locked description entered yet."),make("p","",String((p.reference_images||[]).length)+" reference image(s)"));
+  const actions=make("div","profile-actions"),edit=make("button","secondary","Edit");edit.type="button";edit.addEventListener("click",()=>editProfile(p));actions.append(edit);body.append(actions);card.append(img,body);wrap.append(card)
+ }
+}
+async function loadProfiles(){
+ const response=await fetch("/api/characters");const data=await response.json();if(!response.ok)throw new Error(data.error||"Unable to load character profiles.");profiles=data.characters||[];renderProfiles()
+}
+async function loadImages(){
+ const response=await fetch("/api/project/assets?category=character_reference");const data=await response.json();if(!response.ok)throw new Error(data.error||"Unable to load reference images.");
+ images=(data.assets||[]).filter(x=>[".png",".jpg",".jpeg",".webp",".bmp",".tif",".tiff"].includes(x.extension));
+ // Include image files outside the character-reference category, because some projects store refs in other folders.
+ const other=await fetch("/api/project/assets?category=image");if(other.ok){const more=await other.json();for(const item of more.assets||[])if([".png",".jpg",".jpeg",".webp",".bmp",".tif",".tiff"].includes(item.extension))images.push(item)}
+ images.sort((a,b)=>a.relative_path.localeCompare(b.relative_path));renderImages()
+}
+el("characterForm").addEventListener("submit",async event=>{
+ event.preventDefault();el("save").disabled=true;
+ const id=el("characterId").value;
+ const data={name:el("name").value,locked_description:el("description").value,outfit:el("outfit").value,voice_id:el("voice").value,continuity_notes:el("continuity").value,reference_images:[...selectedImages]};
+ try{
+  const response=await fetch(id?"/api/characters/"+id:"/api/characters",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not save character.");
+  await loadProfiles();resetForm();say("Character saved successfully.","good")
+ }catch(error){say(error.message,"error")}finally{el("save").disabled=false}
+});
+el("reset").addEventListener("click",()=>{resetForm();say("Form cleared.")});
+el("delete").addEventListener("click",async()=>{
+ const id=el("characterId").value,name=el("name").value;if(!id)return;
+ if(!confirm("Delete the Vio-Movie profile for "+name+"? This does not delete any source images."))return;
+ el("delete").disabled=true;
+ try{const response=await fetch("/api/characters/"+id,{method:"DELETE"});const result=await response.json();if(!response.ok)throw new Error(result.error||"Could not delete profile.");await loadProfiles();resetForm();say("Profile deleted. Source images were not changed.","good")}
+ catch(error){say(error.message,"error")}finally{el("delete").disabled=false}
+});
+el("imageSearch").addEventListener("input",renderImages);
+(async()=>{try{await Promise.all([loadProfiles(),loadImages()]);say("Character Bible ready. Add a character or edit an existing profile.")}catch(error){say(error.message,"error")}})();
+</script></body></html>
