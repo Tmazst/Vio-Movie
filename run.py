@@ -7,7 +7,7 @@ from app.scanner import IMAGE_EXTENSIONS, scan_project
 # Templates currently live in app/templates rather than a top-level templates folder.
 app = Flask(__name__, template_folder="app/templates")
 
-DEFAULT_PROJECT_PATH = r"E:\\Inkaka The Guru"
+DEFAULT_PROJECT_PATH = r"E:\Inkaka The Guru"
 
 
 def get_project_root() -> Path:
