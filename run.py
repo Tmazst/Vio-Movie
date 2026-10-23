@@ -3,6 +3,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, render_template, request, send_file
 
 from app.character_store import delete_character, get_character, list_characters, save_character
+from app.episode_store import delete_episode, get_episode, list_episodes, save_episode
 from app.scanner import IMAGE_EXTENSIONS, scan_project
 
 app = Flask(__name__, template_folder="app/templates")
@@ -42,6 +43,65 @@ def library():
 @app.get("/characters")
 def characters_page():
     return render_template("characters.html")
+
+
+@app.get("/episodes")
+def episodes_page():
+    return render_template("episodes.html")
+
+
+def validate_script_path(relative_path: str) -> None:
+    """Allow linking only to an existing file inside the production folder."""
+    if not relative_path:
+        return
+    root = get_project_root()
+    candidate = (root / relative_path).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as error:
+        raise ValueError("The linked script must be inside the production folder.") from error
+    if not candidate.is_file():
+        raise ValueError(f"The linked script file was not found: {relative_path}")
+
+
+@app.get("/api/episodes")
+def episodes_list():
+    return jsonify({"episodes": list_episodes()})
+
+
+@app.post("/api/episodes")
+def episodes_create():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send episode details as JSON."}), 400
+    try:
+        validate_script_path(str(data.get("script_path", "")).strip())
+        episode = save_episode(data)
+        return jsonify({"episode": episode}), 201
+    except (OSError, ValueError, LookupError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.put("/api/episodes/<int:episode_id>")
+def episodes_update(episode_id: int):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send episode details as JSON."}), 400
+    try:
+        validate_script_path(str(data.get("script_path", "")).strip())
+        episode = save_episode(data, episode_id)
+        return jsonify({"episode": episode})
+    except LookupError as error:
+        return jsonify({"error": str(error)}), 404
+    except (OSError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.delete("/api/episodes/<int:episode_id>")
+def episodes_delete(episode_id: int):
+    if not delete_episode(episode_id):
+        return jsonify({"error": "Episode not found."}), 404
+    return jsonify({"deleted": True})
 
 
 @app.get("/api/project/scan")
