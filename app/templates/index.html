@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vio-Movie | Production Manager</title>
+</head>
+<body>
+    <h1>Vio-Movie</h1>
+    <p>Inkaka The Guru — Production Manager</p>
+
+    <button id="scanButton">Scan Project</button>
+
+    <p id="status">Ready to scan your project.</p>
+
+    <pre id="results"></pre>
+
+    <script>
+        const scanButton = document.getElementById("scanButton");
+        const status = document.getElementById("status");
+        const results = document.getElementById("results");
+
+        scanButton.addEventListener("click", async () => {
+            scanButton.disabled = true;
+            status.textContent = "Scanning your existing project...";
+            results.textContent = "";
+
+            try {
+                const response = await fetch("/api/project/scan");
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Scan failed.");
+                }
+
+                status.textContent =
+                    `Found ${data.total_files} files.`;
+
+                results.textContent = JSON.stringify({
+                    project_root: data.project_root,
+                    total_files: data.total_files,
+                    total_size_bytes: data.total_size_bytes,
+                    categories: data.categories,
+                    errors: data.errors
+                }, null, 2);
+
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+
+            } finally {
+                scanButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
