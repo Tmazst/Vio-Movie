@@ -2,7 +2,9 @@ from flask import Flask, jsonify, render_template, request
 
 from app.scanner import scan_project
 
-app = Flask(__name__)
+# Templates currently live in app/templates rather than a top-level templates folder.
+# Set the path explicitly so Flask can locate index.html when run.py is launched.
+app = Flask(__name__, template_folder="app/templates")
 
 DEFAULT_PROJECT_PATH = r"E:\Inkaka The Guru"
 
@@ -14,19 +16,13 @@ def index():
 
 @app.get("/api/project/scan")
 def project_scan():
-    project_path = request.args.get(
-        "path",
-        DEFAULT_PROJECT_PATH,
-    )
+    project_path = request.args.get("path", DEFAULT_PROJECT_PATH)
 
     try:
         result = scan_project(project_path)
         return jsonify(result)
-
     except (OSError, ValueError) as error:
-        return jsonify({
-            "error": str(error),
-        }), 400
+        return jsonify({"error": str(error)}), 400
 
 
 if __name__ == "__main__":
