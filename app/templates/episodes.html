@@ -121,15 +121,30 @@ function renderEpisodes(){
  }
 }
 async function loadAll(){
- const [epRes,charRes,assetRes,docRes]=await Promise.all([
-  fetch("/api/episodes"),fetch("/api/characters"),fetch("/api/project/assets?category=script"),fetch("/api/project/assets?category=document")
+ // Scan the production folder only once. Two parallel asset scans can leave the page waiting on a slow disk.
+ const requests=await Promise.all([
+  fetch("/api/episodes"),
+  fetch("/api/characters"),
+  fetch("/api/project/scan")
  ]);
- for(const response of [epRes,charRes,assetRes,docRes])if(!response.ok)throw new Error("Could not load episode data. Check that the server is running and the project folder is available.");
- const [epData,charData,assetData,docData]=await Promise.all([epRes.json(),charRes.json(),assetRes.json(),docRes.json()]);
- episodes=epData.episodes||[];characters=charData.characters||[];
- const docs=[...(assetData.assets||[]),...(docData.assets||[])].filter(item=>[".pdf",".doc",".docx",".txt",".rtf",".md"].includes(item.extension));
- scripts=[...new Map(docs.map(item=>[item.relative_path,item])).values()].sort((a,b)=>a.relative_path.localeCompare(b.relative_path));
- renderEpisodes();renderCharacters();renderScriptOptions()
+ const labels=["episodes","Character Bible","production folder scan"];
+ for(let i=0;i<requests.length;i++){
+  if(!requests[i].ok){
+   let detail="";
+   try{const payload=await requests[i].json();detail=payload.error||""}catch(_){}
+   throw new Error("Could not load "+labels[i]+(detail?": "+detail:". Check the server and production folder."));
+  }
+ }
+ const [epData,charData,scanData]=await Promise.all(requests.map(response=>response.json()));
+ episodes=epData.episodes||[];
+ characters=charData.characters||[];
+ const docs=(scanData.files||[]).filter(item=>
+  ["script","document"].includes(item.category) &&
+  [".pdf",".doc",".docx",".txt",".rtf",".md"].includes(String(item.extension||"").toLowerCase())
+ );
+ scripts=[...new Map(docs.map(item=>[item.relative_path,item])).values()]
+  .sort((a,b)=>a.relative_path.localeCompare(b.relative_path));
+ renderEpisodes();renderCharacters();renderScriptOptions();
 }
 el("episodeForm").addEventListener("submit",async event=>{
  event.preventDefault();el("save").disabled=true;
