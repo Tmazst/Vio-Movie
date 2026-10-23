@@ -39,6 +39,10 @@ main{max-width:1200px;margin:auto;padding:30px 20px 60px}a{color:#c7c0ff;text-de
 const el=id=>document.getElementById(id);let profiles=[];let images=[];let selectedImages=new Set();
 function make(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n}
 function previewUrl(path){return "/api/project/preview?file="+encodeURIComponent(path)}
+function thumbnailReference(paths){
+ // Prefer the approved CLOSEUP portrait for the saved-character card; keep all references attached.
+ return paths.find(path=>/close[ _-]?up/i.test(path.split(/[\\/]/).pop()||""))||paths[0];
+}
 function say(text,kind=""){el("status").className=kind;el("status").textContent=text}
 function updateChosen(){const wrap=el("chosen");wrap.replaceChildren();for(const path of selectedImages){const item=make("span","chosen-item",path);wrap.append(item)}}
 function renderImages(){
@@ -62,7 +66,7 @@ function renderProfiles(){
  if(!profiles.length){wrap.append(make("div","empty","No character profiles yet. Add your first character using the form."));return}
  for(const p of profiles){
   const card=make("article","profile");let img;
-  if(p.reference_images&&p.reference_images.length){img=make("img","thumb");img.src=previewUrl(p.reference_images[0]);img.alt=p.name+" reference";img.onerror=()=>{img.replaceWith(make("div","thumb","No preview"))}}
+  if(p.reference_images&&p.reference_images.length){img=make("img","thumb");img.src=previewUrl(thumbnailReference(p.reference_images));img.alt=p.name+" close-up reference";img.onerror=()=>{img.replaceWith(make("div","thumb","No preview"))}}
   else{img=make("div","thumb","No image");img.style.display="grid";img.style.placeItems="center";img.style.fontSize="11px";img.style.color="var(--muted)"}
   const body=make("div","");body.append(make("h3","",p.name),make("p","",p.locked_description||"No locked description entered yet."),make("p","",String((p.reference_images||[]).length)+" reference image(s)"));
   const actions=make("div","profile-actions"),edit=make("button","secondary","Edit");edit.type="button";edit.addEventListener("click",()=>editProfile(p));actions.append(edit);body.append(actions);card.append(img,body);wrap.append(card)
