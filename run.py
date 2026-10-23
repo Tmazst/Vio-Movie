@@ -2,20 +2,31 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, render_template, request, send_file
 
+from app.character_store import delete_character, get_character, list_characters, save_character
 from app.scanner import IMAGE_EXTENSIONS, scan_project
 
-# Templates currently live in app/templates rather than a top-level templates folder.
 app = Flask(__name__, template_folder="app/templates")
-
 DEFAULT_PROJECT_PATH = r"E:\Inkaka The Guru"
 
 
 def get_project_root() -> Path:
-    """Return the configured production folder, resolved to an absolute path."""
     root = Path(request.args.get("path", DEFAULT_PROJECT_PATH)).expanduser().resolve()
     if not root.exists() or not root.is_dir():
         raise ValueError(f"Project folder does not exist or is not a directory: {root}")
     return root
+
+
+def validate_reference_images(images: list[str]) -> None:
+    """Prevent saving reference paths that point outside the active project."""
+    root = get_project_root()
+    for relative_path in images:
+        candidate = (root / relative_path).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError as error:
+            raise ValueError("Reference images must be inside the project folder.") from error
+        if not candidate.is_file() or candidate.suffix.lower() not in IMAGE_EXTENSIONS:
+            raise ValueError(f"Reference image was not found or is not an image: {relative_path}")
 
 
 @app.get("/")
@@ -28,6 +39,11 @@ def library():
     return render_template("library.html")
 
 
+@app.get("/characters")
+def characters_page():
+    return render_template("characters.html")
+
+
 @app.get("/api/project/scan")
 def project_scan():
     try:
@@ -38,7 +54,6 @@ def project_scan():
 
 @app.get("/api/project/assets")
 def project_assets():
-    """Return metadata for the production library, optionally filtered by category."""
     try:
         result = scan_project(str(get_project_root()))
     except (OSError, ValueError) as error:
@@ -48,7 +63,6 @@ def project_assets():
     files = result["files"]
     if category and category != "all":
         files = [item for item in files if item["category"] == category]
-
     return jsonify({
         "project_root": result["project_root"],
         "total_files": len(files),
@@ -60,22 +74,64 @@ def project_assets():
 
 @app.get("/api/project/preview")
 def project_preview():
-    """Serve an image preview only when its resolved path remains inside the project."""
     relative_path = request.args.get("file", "")
     if not relative_path:
         abort(400, description="Missing file path.")
-
     try:
         root = get_project_root()
         target = (root / relative_path).resolve()
         target.relative_to(root)
     except (OSError, ValueError):
         abort(404)
-
     if not target.is_file() or target.suffix.lower() not in IMAGE_EXTENSIONS:
         abort(404)
-
     return send_file(target, conditional=True)
+
+
+@app.get("/api/characters")
+def characters_list():
+    return jsonify({"characters": list_characters()})
+
+
+@app.post("/api/characters")
+def characters_create():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send character details as JSON."}), 400
+    try:
+        images = data.get("reference_images", [])
+        if not isinstance(images, list):
+            raise ValueError("Reference images must be a list.")
+        validate_reference_images(images)
+        character = save_character(data)
+        return jsonify({"character": character}), 201
+    except (OSError, ValueError, LookupError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.put("/api/characters/<int:character_id>")
+def characters_update(character_id: int):
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Send character details as JSON."}), 400
+    try:
+        images = data.get("reference_images", [])
+        if not isinstance(images, list):
+            raise ValueError("Reference images must be a list.")
+        validate_reference_images(images)
+        character = save_character(data, character_id)
+        return jsonify({"character": character})
+    except LookupError as error:
+        return jsonify({"error": str(error)}), 404
+    except (OSError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.delete("/api/characters/<int:character_id>")
+def characters_delete(character_id: int):
+    if not delete_character(character_id):
+        return jsonify({"error": "Character not found."}), 404
+    return jsonify({"deleted": True})
 
 
 if __name__ == "__main__":
