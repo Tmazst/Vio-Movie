@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#10131b">
+<title>Shot List Generator | Vio-Movie</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e29;--line:#2b3445;--text:#edf1f8;--muted:#9ba8ba;--accent:#8b7cff;--good:#65d6a4;--bad:#ff8989}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top left,#242044 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1250px;margin:auto;padding:30px 18px 60px}header{display:flex;align-items:center;gap:14px;margin-bottom:23px}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accent);font-size:22px;font-weight:800}h1{margin:0;font-size:clamp(25px,4vw,34px);letter-spacing:-.04em}h2{font-size:21px;margin:0 0 12px}h3{margin:0 0 8px;font-size:17px}.muted,.subtitle,.help{color:var(--muted)}.subtitle{margin:3px 0 0}.badge{margin-left:auto;border:1px solid var(--line);border-radius:99px;padding:6px 11px;color:var(--muted);font-size:12px}
+.panel{border:1px solid var(--line);border-radius:16px;background:rgba(25,30,41,.95);padding:19px;margin-bottom:16px}.toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px auto auto auto;gap:10px;align-items:end}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}input,select,textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:#101520;color:var(--text);padding:10px;font:inherit}textarea{min-height:95px;resize:vertical}button,.link{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);border:0;border-radius:9px;color:white;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}button.secondary,.link{background:transparent;border:1px solid var(--line);color:#d6d0ff}button:disabled{opacity:.6;cursor:wait}.status{margin:12px 0 0;color:var(--muted)}.status.good{color:var(--good)}.status.error{color:var(--bad)}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.stat{border:1px solid var(--line);background:#121722;padding:8px 12px;border-radius:10px;color:var(--muted)}.stat strong{color:var(--text);margin-right:5px}.shot{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px;background:#141925}.shot-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.shot-title{font-size:17px;font-weight:750}.pill{display:inline-block;border:1px solid #494164;border-radius:99px;padding:4px 9px;font-size:12px;color:#d6d0ff}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}.field small{display:block;color:var(--muted);margin-top:5px}.refs{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.top-actions{display:flex;gap:8px;flex-wrap:wrap}.empty{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}.help{font-size:13px}.back{color:#d6d0ff;text-decoration:none}.topline{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+@media(max-width:900px){.toolbar{grid-template-columns:1fr 1fr}.toolbar button{width:100%}}@media(max-width:600px){main{padding:20px 12px}.badge{display:none}.grid,.toolbar{grid-template-columns:1fr}.panel{padding:14px}.shot-head{flex-direction:column}}
+</style></head>
+<body><main>
+<header><div class="logo" aria-hidden="true">V</div><div><h1>Shot List Generator</h1><p class="subtitle">Turn Episode Manager scenes into organized AI-video shots and reusable prompts.</p></div><span class="badge">LOCAL WORKSPACE</span></header>
+<p><a class="back" href="/">← Dashboard</a> · <a class="back" href="/episodes">Episode Manager</a> · <a class="back" href="/characters">Character Bible</a></p>
+<section class="panel">
+<h2>1. Choose episode and generation settings</h2>
+<div class="toolbar">
+<div class="field"><label for="episode">Episode</label><select id="episode"><option value="">Loading episodes…</option></select></div>
+<div class="field"><label for="clipSeconds">Target clip duration</label><select id="clipSeconds"><option value="5">5 seconds</option><option value="6">6 seconds</option><option value="8">8 seconds</option><option value="10">10 seconds</option></select></div>
+<button id="generate" type="button">Generate shot list</button><button id="save" class="secondary" type="button">Save changes</button><button id="export" class="secondary" type="button">Export CSV</button>
+</div>
+<p class="help">Generation uses your saved scenes and Character Bible. Long scenes are split into short clips, and character groups are limited to two people per shot. Generated prompts are editable. Generating again replaces this episode's saved shot list.</p>
+<div id="message" class="status" role="status" aria-live="polite">Loading episodes and character profiles…</div>
+<div class="stats"><div class="stat"><strong id="shotCount">0</strong> shots</div><div class="stat"><strong id="durationTotal">0 sec</strong> planned footage</div><div class="stat"><strong id="readyCount">0</strong> prompts ready</div></div>
+</section>
+<section class="panel">
+<div class="topline"><h2>2. Review and edit shots</h2><span class="help">Shot numbers are assigned automatically when saved.</span></div>
+<div id="shots"><div class="empty">Choose an episode to load its saved shots.</div></div>
+</section>
+<footer class="help">Vio-Movie stores shot data in its local database. Your original scripts, images, and other production files stay in their existing folders.</footer>
+</main>
+<script>
+const el=id=>document.getElementById(id);let episodes=[];let characters=[];let shots=[];let activeEpisode="";
+const statuses=["Planned","Prompt Ready","Generated","Approved"];
+function node(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n}
+function say(text,kind=""){el("message").className="status "+kind;el("message").textContent=text}
+async function requestJSON(url,options={}){const r=await fetch(url,options);let data={};try{data=await r.json()}catch(_){}if(!r.ok)throw new Error(data.error||"Request failed ("+r.status+").");return data}
+function selectedEpisode(){return episodes.find(e=>String(e.id)===String(el("episode").value))}
+function updateStats(){el("shotCount").textContent=shots.length;el("durationTotal").textContent=shots.reduce((n,s)=>n+(Number(s.duration_seconds)||0),0)+" sec";el("readyCount").textContent=shots.filter(s=>["Prompt Ready","Generated","Approved"].includes(s.status)).length}
+function renderShots(){
+ const wrap=el("shots");wrap.replaceChildren();
+ if(!shots.length){wrap.append(node("div","empty","No shots saved for this episode yet. Click Generate shot list to build prompts from its scenes."));updateStats();return}
+ shots.forEach((s,index)=>{
+  const card=node("article","shot"),head=node("div","shot-head"),title=node("div","shot-title","SHOT "+String(index+1).padStart(3,"0")+" · Scene "+s.scene_number+" · "+(s.title||"Untitled scene")),pill=node("span","pill",s.status||"Planned");head.append(title,pill);card.append(head);
+  const grid=node("div","grid");
+  const add=(label,key,kind="input",options=null,full=false)=>{
+   const holder=node("div","field"+(full?" full":"")),lab=node("label","",label);let control;
+   if(kind==="textarea")control=node("textarea");else if(kind==="select"){control=node("select");for(const o of options)control.append(new Option(o,o))}else{control=node("input");if(key==="duration_seconds"){control.type="number";control.min="1";control.max="60"}}
+   control.value=Array.isArray(s[key])?s[key].join(", "):(s[key]??"");
+   control.addEventListener("input",()=>{s[key]=key==="duration_seconds"?(Number(control.value)||1):control.value;if(key==="status")pill.textContent=control.value;updateStats()});
+   lab.append(control);holder.append(lab);grid.append(holder);return control
+  };
+  add("Shot title","title");add("Location","location");add("Clip duration (seconds)","duration_seconds");add("Production status","status","select",statuses);
+  const characterNames=(s.character_ids||[]).map(id=>characters.find(c=>c.id===id)?.name).filter(Boolean);
+  const cast=add("Characters in this shot","character_names","input");cast.value=characterNames.join(", ");cast.disabled=true;
+  const refs=node("div","field full"),refLabel=node("label","","Reference images (attached in Character Bible)"),refText=node("div","refs",(s.reference_images||[]).length?(s.reference_images||[]).join(" · "):"No reference images attached to selected characters.");refLabel.append(refText);refs.append(refLabel);grid.append(refs);
+  add("Action / visual direction","action","textarea",null,true);add("Dialogue","dialogue","textarea",null,true);add("AI video prompt","prompt","textarea",null,true);add("Negative prompt","negative_prompt","textarea",null,true);
+  card.append(grid);wrap.append(card);
+ });updateStats()
+}
+async function loadShots(){
+ const ep=selectedEpisode();activeEpisode=ep?String(ep.id):"";shots=[];
+ if(!ep){renderShots();say("Create an episode with at least one scene in Episode Manager first.");return}
+ const data=await requestJSON("/api/episodes/"+ep.id+"/shots");shots=data.shots||[];renderShots();
+ if(!(ep.scenes||[]).length)say("This episode has no scenes yet. Add scenes in Episode Manager, then generate shots.","error");else say("Loaded "+shots.length+" saved shot(s) for Episode "+ep.episode_number+".","good")
+}
+function csvCell(value){return '"'+String(value??"").replaceAll('"','""')+'"'}
+function exportCSV(){
+ if(!shots.length){say("There are no shots to export.","error");return}
+ const columns=["shot_number","scene_number","title","character_names","location","time_of_day","action","dialogue","duration_seconds","status","prompt","negative_prompt","reference_images"];
+ const rows=[columns.join(","),...shots.map((s,i)=>columns.map(key=>csvCell(key==="shot_number"?i+1:key==="character_names"?(s.character_names||[]).join("; "):key==="reference_images"?(s.reference_images||[]).join("; "):s[key])).join(","))];
+ const blob=new Blob(["\ufeff"+rows.join("\r\n")],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="episode-"+(selectedEpisode()?.episode_number||"shots")+"-shot-list.csv";a.click();URL.revokeObjectURL(url);say("CSV export created.","good")
+}
+el("episode").addEventListener("change",()=>loadShots().catch(e=>say(e.message,"error")));
+el("generate").addEventListener("click",async()=>{
+ const ep=selectedEpisode();if(!ep){say("Choose an episode first.","error");return}
+ if(!(ep.scenes||[]).length){say("This episode has no scenes. Add scenes in Episode Manager first.","error");return}
+ if(!confirm("Generate a new shot list from this episode's scenes? This replaces the existing saved shot list for this episode."))return;
+ el("generate").disabled=true;say("Building shot prompts from scenes and Character Bible…");
+ try{const data=await requestJSON("/api/episodes/"+ep.id+"/shots/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({clip_seconds:Number(el("clipSeconds").value)})});shots=data.shots||[];renderShots();say("Generated "+shots.length+" shot(s). Review the prompts and click Save changes after editing.","good")}
+ catch(e){say(e.message,"error")}finally{el("generate").disabled=false}
+});
+el("save").addEventListener("click",async()=>{
+ const ep=selectedEpisode();if(!ep){say("Choose an episode first.","error");return}
+ el("save").disabled=true;say("Saving shot list…");
+ try{const data=await requestJSON("/api/episodes/"+ep.id+"/shots",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({shots})});shots=data.shots||[];renderShots();say("Saved "+shots.length+" shot(s).","good")}
+ catch(e){say(e.message,"error")}finally{el("save").disabled=false}
+});
+el("export").addEventListener("click",exportCSV);
+(async()=>{
+ try{
+  const [epData,charData]=await Promise.all([requestJSON("/api/episodes"),requestJSON("/api/characters")]);episodes=epData.episodes||[];characters=charData.characters||[];
+  const select=el("episode");select.replaceChildren();
+  if(!episodes.length){select.append(new Option("No episodes yet",""));say("Create an episode in Episode Manager first.");renderShots();return}
+  for(const ep of episodes)select.append(new Option("EP "+String(ep.episode_number).padStart(2,"0")+" · "+ep.title,ep.id));
+  await loadShots()
+ }catch(e){say(e.message,"error")}
+})();
+</script></body></html>
