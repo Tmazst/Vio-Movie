@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10131b"><title>Production Library | Vio-Movie</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191e29;--line:#2b3445;--text:#edf1f8;--muted:#9ba8ba;--accent:#8b7cff;--good:#65d6a4;--bad:#ff8989}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top left,#242044 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1200px;margin:auto;padding:30px 20px 60px}a{color:#c7c0ff;text-decoration:none}a:hover{text-decoration:underline}.top{display:flex;align-items:center;gap:14px;margin-bottom:26px}.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--accent);font-size:22px;font-weight:800}h1{font-size:clamp(25px,4vw,34px);letter-spacing:-.04em;margin:0}.muted{color:var(--muted)}.back{margin-left:auto}
+.intro,.toolbar,.asset{border:1px solid var(--line);border-radius:16px;background:rgba(25,30,41,.94)}.intro{padding:23px;background:linear-gradient(135deg,rgba(139,124,255,.13),rgba(25,30,41,.94) 60%)}.intro h2{margin:0 0 5px}.intro p{margin:0;color:var(--muted);overflow-wrap:anywhere}
+.toolbar{padding:15px;margin:16px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.toolbar label{color:var(--muted)}select,input{background:#111621;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit}input{flex:1;min-width:190px}button{background:var(--accent);color:white;border:0;border-radius:9px;padding:10px 15px;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+.summary{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:18px 2px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.asset{overflow:hidden;min-width:0}.preview{height:175px;background:#111621;display:grid;place-items:center;overflow:hidden;border-bottom:1px solid var(--line)}.preview img{width:100%;height:100%;object-fit:contain}.file-icon{font-size:46px;color:#aaa1ff}.asset-body{padding:13px}.asset h3{font-size:14px;margin:0 0 7px;overflow-wrap:anywhere}.pill{display:inline-block;font-size:11px;color:#d6d0ff;background:rgba(139,124,255,.14);border:1px solid rgba(139,124,255,.3);border-radius:99px;padding:3px 7px;margin-bottom:9px}.path{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.meta{font-size:12px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between;gap:8px}.empty{border:1px dashed var(--line);border-radius:14px;padding:35px;text-align:center;color:var(--muted);grid-column:1/-1}#status{color:var(--muted);margin:8px 2px}#status.error{color:var(--bad)}footer{color:var(--muted);font-size:12px;margin-top:28px}
+@media(max-width:550px){main{padding:20px 12px}.toolbar{align-items:stretch}.toolbar>*{width:100%}.back{margin-left:0}}
+</style>
+</head>
+<body><main>
+<header class="top"><div class="logo" aria-hidden="true">V</div><div><h1>Production Library</h1><div class="muted">Inkaka The Guru · Existing assets</div></div><a class="back" href="/">← Dashboard</a></header>
+<section class="intro"><h2>Your production assets, organized</h2><p>Browse character references, locations, props, scripts, documents and media in the project folder. The library reads your existing files in place and does not move, rename or modify them.</p><p id="rootPath" style="margin-top:10px"></p></section>
+<section class="toolbar" aria-label="Library filters"><label for="category">Category</label><select id="category"><option value="all">All assets</option></select><input id="search" type="search" placeholder="Search filename or folder…" aria-label="Search assets"><button id="refresh" type="button">Refresh library</button></section>
+<div class="summary"><span id="count">Loading assets…</span><span id="categorySummary"></span></div><p id="status" role="status" aria-live="polite">Reading file metadata…</p>
+<section id="grid" class="grid" aria-label="Production assets"><div class="empty">Loading your files…</div></section>
+<footer>Vio-Movie · Local-first production tools · Image previews are served only from inside your configured project folder.</footer>
+</main>
+<script>
+const el=id=>document.getElementById(id);let allAssets=[];let categoryCounts={};
+function bytes(n){if(!n)return"0 B";const units=["B","KB","MB","GB"];const i=Math.min(Math.floor(Math.log(n)/Math.log(1024)),units.length-1);return(n/1024**i).toFixed(i?1:0)+" "+units[i]}
+function label(s){return s.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase())}
+function make(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n}
+function render(){
+ const category=el("category").value,query=el("search").value.trim().toLowerCase();
+ const items=allAssets.filter(a=>(category==="all"||a.category===category)&&(!query||(a.name+" "+a.relative_path+" "+a.category).toLowerCase().includes(query)));
+ el("grid").replaceChildren();el("count").textContent=items.length+" asset"+(items.length===1?"":"s")+" shown";el("categorySummary").textContent=Object.keys(categoryCounts).length+" categories";
+ if(!items.length){el("grid").append(make("div","empty","No matching assets. Try another category or search term."));return}
+ const frag=document.createDocumentFragment();
+ for(const asset of items){
+  const card=make("article","asset"),preview=make("div","preview");
+  if(["character_reference","location_reference","prop_reference","image"].includes(asset.category)&&[".png",".jpg",".jpeg",".webp",".bmp",".tif",".tiff"].includes(asset.extension)){
+   const img=make("img");img.loading="lazy";img.alt=asset.name;img.src="/api/project/preview?file="+encodeURIComponent(asset.relative_path);img.onerror=()=>{preview.replaceChildren(make("div","file-icon","▧"))};preview.append(img);
+  }else{preview.append(make("div","file-icon",asset.category==="video"?"▶":asset.category==="audio"?"♫":asset.category.includes("script")||asset.category.includes("document")?"▤":"▧"))}
+  const body=make("div","asset-body");body.append(make("span","pill",label(asset.category)),make("h3","",asset.name),make("div","path",asset.relative_path));
+  const meta=make("div","meta");meta.append(make("span","",bytes(asset.size_bytes)),make("span","",asset.extension?asset.extension.toUpperCase():"File"));body.append(meta);card.append(preview,body);frag.append(card);
+ }
+ el("grid").append(frag)
+}
+async function load(){
+ el("refresh").disabled=true;el("status").className="";el("status").textContent="Scanning the project folder…";
+ try{
+  const response=await fetch("/api/project/assets");const data=await response.json();if(!response.ok)throw new Error(data.error||"Could not read project folder.");
+  allAssets=data.assets||[];categoryCounts=data.categories||{};el("rootPath").textContent="Project folder: "+data.project_root;
+  const select=el("category"),previous=select.value;select.replaceChildren();select.append(new Option("All assets","all"));
+  Object.entries(categoryCounts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([key,count])=>select.append(new Option(label(key)+" ("+count+")",key)));
+  select.value=[...select.options].some(o=>o.value===previous)?previous:"all";
+  render();el("status").textContent="Library ready. Your original files have not been changed.";
+ }catch(err){el("status").className="error";el("status").textContent="Unable to load library: "+err.message;el("grid").replaceChildren(make("div","empty","Check that the project folder exists and Vio-Movie has permission to read it."))}
+ finally{el("refresh").disabled=false}
+}
+el("category").addEventListener("change",render);el("search").addEventListener("input",render);el("refresh").addEventListener("click",load);load();
+</script></body></html>
