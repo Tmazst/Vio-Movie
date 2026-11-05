@@ -168,3 +168,9 @@ migrations/011_public_profile_image.sql
 uMshova Dealuxe.rar
 project_upgrade_document/Version 03/uMshova_Dealuxe_ENV_Modes_and_Switches_Guide.pdf
 project_upgrade_document/Version 03/build_env_switches_guide.py
+
+# Local production database, generated clips and private configuration
+instance/
+.env
+.env.*
+!.env.example
