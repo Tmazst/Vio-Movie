@@ -1,4 +1,9 @@
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from flask import Flask, abort, jsonify, render_template, request, send_file
 
@@ -8,7 +13,11 @@ from app.shot_store import generate_shots, list_shots, save_shots
 from app.scanner import IMAGE_EXTENSIONS, scan_project
 
 app = Flask(__name__, template_folder="app/templates")
-DEFAULT_PROJECT_PATH = r"E:\Inkaka The Guru"
+from app.video_studio import studio
+
+app.config["MAX_CONTENT_LENGTH"] = 250 * 1024 * 1024
+app.register_blueprint(studio)
+DEFAULT_PROJECT_PATH = os.getenv("VIO_PROJECT_PATH", r"E:\Inkaka The Guru")
 
 
 def get_project_root() -> Path:
